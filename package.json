@@ -1,0 +1,23 @@
+{
+  "name": "egrobot",
+  "version": "0.0.0",
+  "description": "monitoring changes in EGRUL and EGRIP",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "keywords": [
+    "EGRUL",
+    "EGRIP",
+    "INN"
+  ],
+  "author": "Konstantin Barkalov",
+  "license": "UNLICENSED YET",
+  "dependencies": {
+    "async-exit-hook": "^2.0.1",
+    "json-difference": "^1.8.2",
+    "node-fetch": "^3.3.0",
+    "telegraf": "^4.11.2"
+  }
+}
