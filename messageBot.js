@@ -41,7 +41,15 @@ export class MessageBot {
     let shortName;
     let inn;
     if (isJuridistic) {
-      shortName = watchListEntity.reference['СвЮЛ']['СвНаимЮЛ']['СвНаимЮЛСокр']['@attributes']['НаимСокр'];
+      if (watchListEntity.reference['СвЮЛ']['СвНаимЮЛ']['СвНаимЮЛСокр']) {
+        shortName = watchListEntity.reference['СвЮЛ']['СвНаимЮЛ']['СвНаимЮЛСокр']['@attributes']['НаимСокр'];
+
+      } else {
+        shortName = watchListEntity.reference['СвЮЛ']['СвНаимЮЛ']['@attributes']['НаимЮЛСокр'];
+
+      }
+      
+      
       inn = watchListEntity.reference['СвЮЛ']['@attributes']['ИНН'];
     } else {
       shortName = 'ИП ' + watchListEntity.reference['СвИП']['СвФЛ']['ФИОРус']['@attributes']['Фамилия'];
@@ -65,19 +73,19 @@ export class MessageBot {
     let text = '';
     if (diff) {
       diff.removed.forEach(element => {
-        text += `Удалено: ${element[0]}  \n`;
-        text += `Было: ${element[1]}  \n`;
+        text += `УДЛ: ${element[0]}  \n`;
+        text += `➖ ${element[1]}  \n`;
         text += `\n`;
       });
       diff.added.forEach(element => {
-        text += `Добавлено: ${element[0]}  \n`;
-        text += `Стало: ${element[1]}  \n`;
+        text += `ДОБ: ${element[0]}  \n`;
+        text += `➕ ${element[1]}  \n`;
         text += `\n`;
       });
       diff.edited.forEach(element => {
-        text += `Изменено: ${element[0]}  \n`;
-        text += `Было: ${element[1]}  \n`;
-        text += `Стало: ${element[2]}  \n`;      
+        text += `ИЗМ: ${element[0]}  \n`;
+        text += `➖ ${element[1]}  \n`;
+        text += `➕ ${element[2]}  \n`;      
         text += `\n`;
       });
     }
@@ -150,7 +158,7 @@ export class MessageBot {
     const candidateRevDateText = this.getChangesRevDateText(watchListEntity);
     const diffText = this.getDiffText(diff);
       
-    let text = `${smartName}\n${status}  ${candidateRevDateText}\n${diffText}`;
+    let text = `${smartName}\n${status} ${candidateRevDateText}\n\n${diffText}`;
     return [ new TextMessage(text.trim()) ];
   }
 

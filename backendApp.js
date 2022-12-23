@@ -136,11 +136,6 @@ export class BackendApp {
     return await Promise.all(promises);
   }
 
-  async updateAllCandidates() {
-    const telegramUsers = await this.getAllTelegramUsers();
-    const promises = Object.keys(telegramUsers).map((telegramUserId) => { return this.updateAllCandidatesInWatchList(telegramUserId)});
-    await Promise.all(promises);
-  }
   async autoupdateAllCandidates() {
     const telegramUsers = await this.getAllTelegramUsers();
     for (const telegramUserId in telegramUsers) {
