@@ -3,9 +3,9 @@ import exitHook from 'async-exit-hook';
 import { Telegraf } from 'telegraf';
 
 import { MessageBot } from './messageBot.js';
-import { pause } from './utils.js';
 
-const telegramBotToken = require('./secret.json').telegramBotToken;
+import { telegramBotToken } from './secret.js';
+//const telegramBotToken = require('./secret.json').telegramBotToken;
 const telegramBot = new Telegraf(telegramBotToken);
 const messageBot = new MessageBot();
 
@@ -22,17 +22,19 @@ telegramBot.help((ctx) => ctx.reply('Send me a sticker'));
 
 telegramBot.command('list', async (ctx) => {
   const telegramUserId = ctx.chat.id;
+  const telegrafExtra = null; // { reply_to_message_id: ctx.message.message_id };
   const replyMessages = await messageBot.getWatchList(telegramUserId);
   for (const replyMessage of replyMessages) {
     const replyMessageText = replyMessage.toString();
     if (replyMessageText) {
-      await ctx.reply(replyMessageText);
+      await ctx.reply(replyMessageText, telegrafExtra);
     }
   }
 })
 
 telegramBot.command('diff', async (ctx) => {
   const telegramUserId = ctx.chat.id;
+  const telegrafExtra = null; // { reply_to_message_id: ctx.message.message_id };
   let params = ctx.update.message.text.split(' ').slice(1);
   if (params.length > 0) {
     if (params[0] === '*') {
@@ -44,17 +46,18 @@ telegramBot.command('diff', async (ctx) => {
       for (const replyMessage of replyMessages) {
         const replyMessageText = replyMessage.toString();
         if (replyMessageText) {
-          await ctx.reply(replyMessageText);
+          await ctx.reply(replyMessageText, telegrafExtra);
         }
       }
     }      
   } else {
-    await ctx.reply('Укажите ИНН или *');
+    await ctx.reply('Укажите ИНН или *', telegrafExtra);
   }
 })
 
 telegramBot.command('add', async (ctx) => {
   const telegramUserId = ctx.chat.id;
+  const telegrafExtra = null; // { reply_to_message_id: ctx.message.message_id };
   const params = ctx.update.message.text.split(' ').slice(1);
   if (params.length > 0) {
     for (const param of params) {
@@ -63,17 +66,18 @@ telegramBot.command('add', async (ctx) => {
       for (const replyMessage of replyMessages) {
         const replyMessageText = replyMessage.toString();
         if (replyMessageText) {
-          await ctx.reply(replyMessageText);
+          await ctx.reply(replyMessageText, telegrafExtra);
         }
       }
     }    
   } else {
-    await ctx.reply('Укажите ИНН для добавления организации');
+    await ctx.reply('Укажите ИНН для добавления организации', telegrafExtra);
   }
 })
 
 telegramBot.command('remove', async (ctx) => {
   const telegramUserId = ctx.chat.id;
+  const telegrafExtra = null; // { reply_to_message_id: ctx.message.message_id };
   let params = ctx.update.message.text.split(' ').slice(1);
   if (params.length > 0) {
     if (params[0] === '*') {
@@ -85,17 +89,18 @@ telegramBot.command('remove', async (ctx) => {
       for (const replyMessage of replyMessages) {
         const replyMessageText = replyMessage.toString();
         if (replyMessageText) {
-          await ctx.reply(replyMessageText);
+          await ctx.reply(replyMessageText, telegrafExtra);
         }
       }
     }
   } else {
-    await ctx.reply('Укажите ИНН или * для удаления организации');
+    await ctx.reply('Укажите ИНН или * для удаления организации', telegrafExtra);
   }
 })
 
 telegramBot.command('update', async (ctx) => {
   const telegramUserId = ctx.chat.id;
+  const telegrafExtra = null; // { reply_to_message_id: ctx.message.message_id };
   let params = ctx.update.message.text.split(' ').slice(1);
   if (params.length > 0) {
     if (params[0] === '*') {
@@ -107,17 +112,18 @@ telegramBot.command('update', async (ctx) => {
       for (const replyMessage of replyMessages) {
         const replyMessageText = replyMessage.toString();
         if (replyMessageText) {
-          await ctx.reply(replyMessageText);
+          await ctx.reply(replyMessageText, telegrafExtra);
         }
       }
     }
   } else {
-    await ctx.reply('Укажите ИНН или * для загрузки свежей выписки');
+    await ctx.reply('Укажите ИНН или * для загрузки свежей выписки', telegrafExtra);
   }
 })
 
 telegramBot.command('approve', async (ctx) => {
   const telegramUserId = ctx.chat.id;
+  const telegrafExtra = null; // { reply_to_message_id: ctx.message.message_id };
   let params = ctx.update.message.text.split(' ').slice(1);
   if (params.length > 0) {
     if (params[0] === '*') {
@@ -129,12 +135,12 @@ telegramBot.command('approve', async (ctx) => {
       for (const replyMessage of replyMessages) {
         const replyMessageText = replyMessage.toString();
         if (replyMessageText) {
-          await ctx.reply(replyMessageText);
+          await ctx.reply(replyMessageText, telegrafExtra);
         }
       }
     }
   } else {
-    await ctx.reply('Укажите ИНН или * для принятия новых данных за образец');
+    await ctx.reply('Укажите ИНН или * для принятия новых данных за образец', telegrafExtra);
   }
 })
 
