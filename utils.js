@@ -19,13 +19,13 @@ export function getRevDateText(date) {
   const now = new Date();
   const dateDiff = now.valueOf() - date.valueOf();
   if (dateDiff > 1000 * 60 * 60 * 24) {
-    text = Math.floor(dateDiff  / (1000 * 60 * 60 * 24)) + ' дней назад';
+    text = Math.floor(dateDiff  / (1000 * 60 * 60 * 24)) + ' дн. наз.';
   } else if (dateDiff > 1000 * 60 * 60) {
-    text = Math.floor(dateDiff  / (1000 * 60 * 60)) + ' часов назад';
+    text = Math.floor(dateDiff  / (1000 * 60 * 60)) + ' час. наз.';
   } else if (dateDiff > 1000 * 60) {
-    text = Math.floor(dateDiff  / (1000 * 60)) + ' минут назад';
+    text = Math.floor(dateDiff  / (1000 * 60)) + ' мин. наз.';
   } else {
-    text = Math.floor(dateDiff / (1000)) + ' секунд назад';
+    text = Math.floor(dateDiff / (1000)) + ' сек. наз.';
   }
   return text;
 }

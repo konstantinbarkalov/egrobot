@@ -56,14 +56,14 @@ export class BackendApp {
 
   async getWatchEntity(telegramUserId, inn) {
     const telegramUser = await this.getTelegramUser(telegramUserId);
-    const watchListEntity = telegramUser.watchList[inn.toString()];
-    return watchListEntity;
+    const watchEntity = telegramUser.watchList[inn.toString()];
+    return watchEntity;
   }
 
-  async setWatchEntity(telegramUserId, inn, watchListEntity) {
+  async setWatchEntity(telegramUserId, inn, watchEntity) {
     const telegramUser = await this.getTelegramUser(telegramUserId);
-    if (watchListEntity) {
-      telegramUser.watchList[inn.toString()] = watchListEntity;
+    if (watchEntity) {
+      telegramUser.watchList[inn.toString()] = watchEntity;
     } else {
       delete telegramUser.watchList[inn.toString()];
     }
@@ -77,16 +77,17 @@ export class BackendApp {
     const isWasBefore = !!(await this.getWatchEntity(telegramUserId, inn));
     if (!isWasBefore) {
       const reference = await this.fetchEntitySnapshot(inn);
-      const newWatchListEntity = {
+      const newWatchEntity = {
         reference: reference,
         referenceFetchedDate: new Date(),
         candidate: null,
         candidateFetchedDate: null,
         referenceApprovedDate: null,
         diff: null,
+        hasDiff: false,
         status: 'new',
       }
-      await this.setWatchEntity(telegramUserId, inn, newWatchListEntity);
+      await this.setWatchEntity(telegramUserId, inn, newWatchEntity);
     }
     return !isWasBefore;
   }
@@ -100,30 +101,33 @@ export class BackendApp {
   }
 
   async updateCandidateInWatchList(telegramUserId, inn) {
-    const watchListEntity = await this.getWatchEntity(telegramUserId, inn);
+    const watchEntity = await this.getWatchEntity(telegramUserId, inn);
     const candidate = await this.fetchEntitySnapshot(inn);
-    watchListEntity.candidate = candidate;
-    watchListEntity.candidateFetchedDate = new Date();
-    const diff = getJsonDiff(watchListEntity.reference, watchListEntity.candidate, true);
-    const status = (diff.added.length === 0 && diff.edited.length === 0 && diff.removed.length === 0) ? 'same' : 'differs';
-    watchListEntity.diff = diff;
-    watchListEntity.status = status;
-    await this.setWatchEntity(telegramUserId, inn, watchListEntity);
+    watchEntity.candidate = candidate;
+    watchEntity.candidateFetchedDate = new Date();
+    const diff = getJsonDiff(watchEntity.reference, watchEntity.candidate, true);
+    const hasDiff = diff.added.length > 0 || diff.removed.length > 0 || diff.edited.length > 0;
+    const status = (hasDiff) ? 'differs' : 'same';
+    watchEntity.diff = diff;
+    watchEntity.hasDiff = hasDiff;
+    watchEntity.status = status;
+    await this.setWatchEntity(telegramUserId, inn, watchEntity);
     return status;
   }
 
   async approveCandidateToReferenceInWatchList(telegramUserId, inn) {
-    const watchListEntity = await this.getWatchEntity(telegramUserId, inn);
-    const diff = watchListEntity.diff;
-    if (diff.added.length !== 0 || diff.edited.length !== 0 || diff.removed.length !== 0) {
-      watchListEntity.reference = watchListEntity.candidate;
-      watchListEntity.referenceFetchedDate = watchListEntity.candidateFetchedDate;
-      watchListEntity.candidate = null;
-      watchListEntity.candidateFetchedDate = null;
-      watchListEntity.referenceApprovedDate = new Date(),
-      watchListEntity.diff = null,
-      watchListEntity.status = 'approved',
-      await this.setWatchEntity(telegramUserId, inn, watchListEntity);
+    const watchEntity = await this.getWatchEntity(telegramUserId, inn);
+    const hasDiff = watchEntity.hasDiff;
+    if (hasDiff) {
+      watchEntity.reference = watchEntity.candidate;
+      watchEntity.referenceFetchedDate = watchEntity.candidateFetchedDate;
+      watchEntity.candidate = null;
+      watchEntity.candidateFetchedDate = null;
+      watchEntity.referenceApprovedDate = new Date(),
+      watchEntity.diff = null,
+      watchEntity.hasDiff = false,
+      watchEntity.status = 'approved',
+      await this.setWatchEntity(telegramUserId, inn, watchEntity);
       return true;
     } else {
       return false;
