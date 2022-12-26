@@ -108,25 +108,25 @@ export class MessageBot {
     return text;
   }
 
-getStatusIconText(status) {
-  switch (status) {
-    case 'same':
-      return '⚪️';        
-  
-    case 'differs':
-      return '🔴';
-
-    case 'new':
-      return '🔵';
-
-    case 'approved':
-      return '🟢';
-
-    default:
-      return '🟣';
-  }
-}
+  getStatusIconText(status) {
+    switch (status) {
+      case 'same':
+        return '⚪️';        
     
+      case 'differs':
+        return '🔴';
+
+      case 'new':
+        return '🔵';
+
+      case 'approved':
+        return '🟢';
+
+      default:
+        return '🟣';
+    }
+  }
+      
   // wrappers for public chat-human-api
 
   async getWatchList(telegramUserId) {
@@ -225,9 +225,9 @@ getStatusIconText(status) {
   async removeFromWatchList(telegramUserId, innKey) {
     const isRemoved = await this.backendApp.removeFromWatchList(telegramUserId, innKey);
     if (isRemoved) {
-      return [ new TextMessage(`ключу ${innKey} убран из списка и больше не мониторится`) ];    
+      return [ new TextMessage(`Организация по ключу ${innKey} убрана из списка и больше не мониторится`) ];    
     } else {
-      return [ new TextMessage(`ключу ${innKey} убрать из списка мониторинга не удалось, скорее всего его там и не было`) ];
+      return [ new TextMessage(`Организацию по ключу ${innKey} убрать из списка мониторинга не удалось, скорее всего ее там и не было`) ];
     }
   }
 

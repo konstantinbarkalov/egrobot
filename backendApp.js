@@ -21,8 +21,8 @@ export class BackendApp {
     await this.easyDb.saveCopyToFile();
   }
 
-  async fetchEntitySnapshot(inn) {
-    const entity = await fetchFromItsoft(inn);
+  async fetchEntitySnapshot(innKey) {
+    const entity = await fetchFromItsoft(innKey);
     return entity;
   }
 
@@ -47,35 +47,35 @@ export class BackendApp {
 
   async setTelegramUser(telegramUserId, telegramUser) {
     if (telegramUser) {
-      this.easyDb.datum.telegramUsers[telegramUserId.toString()] = telegramUser;
+      this.easyDb.datum.telegramUsers[telegramUserId] = telegramUser;
     } else {
-      delete this.easyDb.datum.telegramUsers[telegramUserId.toString()];
+      delete this.easyDb.datum.telegramUsers[telegramUserId];
     }
     await this.easyDb.saveToFile();
   }
 
-  async getWatchEntity(telegramUserId, inn) {
+  async getWatchEntity(telegramUserId, innKey) {
     const telegramUser = await this.getTelegramUser(telegramUserId);
-    const watchEntity = telegramUser.watchList[inn.toString()];
+    const watchEntity = telegramUser.watchList[innKey];
     return watchEntity;
   }
 
-  async setWatchEntity(telegramUserId, inn, watchEntity) {
+  async setWatchEntity(telegramUserId, innKey, watchEntity) {
     const telegramUser = await this.getTelegramUser(telegramUserId);
     if (watchEntity) {
-      telegramUser.watchList[inn.toString()] = watchEntity;
+      telegramUser.watchList[innKey] = watchEntity;
     } else {
-      delete telegramUser.watchList[inn.toString()];
+      delete telegramUser.watchList[innKey];
     }
     await this.setTelegramUser(telegramUserId, telegramUser);
   }
 
   // high-level api
   
-  async addToWatchList(telegramUserId, inn) {
-    const isWasBefore = !!(await this.getWatchEntity(telegramUserId, inn));
+  async addToWatchList(telegramUserId, innKey) {
+    const isWasBefore = !!(await this.getWatchEntity(telegramUserId, innKey));
     if (!isWasBefore) {
-      const reference = await this.fetchEntitySnapshot(inn);
+      const reference = await this.fetchEntitySnapshot(innKey);
       const newWatchEntity = {
         reference: reference,
         referenceFetchedDate: new Date(),
@@ -87,22 +87,22 @@ export class BackendApp {
         status: 'new',
         isFavorite: false,
       }
-      await this.setWatchEntity(telegramUserId, inn, newWatchEntity);
+      await this.setWatchEntity(telegramUserId, innKey, newWatchEntity);
     }
     return !isWasBefore;
   }
 
-  async removeFromWatchList(telegramUserId, inn) {
-    const isWasBefore = !!(await this.getWatchEntity(telegramUserId, inn));
+  async removeFromWatchList(telegramUserId, innKey) {
+    const isWasBefore = !!(await this.getWatchEntity(telegramUserId, innKey));
     if (isWasBefore) {
-      await this.setWatchEntity(telegramUserId, inn, null);
+      await this.setWatchEntity(telegramUserId, innKey, null);
     }
     return isWasBefore;
   }
 
-  async updateCandidateInWatchList(telegramUserId, inn) {
-    const watchEntity = await this.getWatchEntity(telegramUserId, inn);
-    const candidate = await this.fetchEntitySnapshot(inn);
+  async updateCandidateInWatchList(telegramUserId, innKey) {
+    const watchEntity = await this.getWatchEntity(telegramUserId, innKey);
+    const candidate = await this.fetchEntitySnapshot(innKey);
     watchEntity.candidate = candidate;
     watchEntity.candidateFetchedDate = new Date();
     const diff = getJsonDiff(watchEntity.reference, watchEntity.candidate, true);
@@ -111,12 +111,12 @@ export class BackendApp {
     watchEntity.diff = diff;
     watchEntity.hasDiff = hasDiff;
     watchEntity.status = status;
-    await this.setWatchEntity(telegramUserId, inn, watchEntity);
+    await this.setWatchEntity(telegramUserId, innKey, watchEntity);
     return status;
   }
 
-  async approveCandidateToReferenceInWatchList(telegramUserId, inn) {
-    const watchEntity = await this.getWatchEntity(telegramUserId, inn);
+  async approveCandidateToReferenceInWatchList(telegramUserId, innKey) {
+    const watchEntity = await this.getWatchEntity(telegramUserId, innKey);
     const hasDiff = watchEntity.hasDiff;
     if (hasDiff) {
       watchEntity.reference = watchEntity.candidate;
@@ -127,22 +127,22 @@ export class BackendApp {
       watchEntity.diff = null,
       watchEntity.hasDiff = false,
       watchEntity.status = 'approved',
-      await this.setWatchEntity(telegramUserId, inn, watchEntity);
+      await this.setWatchEntity(telegramUserId, innKey, watchEntity);
       return true;
     } else {
       return false;
     }
   }
 
-  async setIsFavorite(telegramUserId, inn, isFavorite) {
-    const watchEntity = await this.getWatchEntity(telegramUserId, inn);
+  async setIsFavorite(telegramUserId, innKey, isFavorite) {
+    const watchEntity = await this.getWatchEntity(telegramUserId, innKey);
     watchEntity.isFavorite = isFavorite;
-    await this.setWatchEntity(telegramUserId, inn, watchEntity);
+    await this.setWatchEntity(telegramUserId, innKey, watchEntity);
   }
 
   async updateAllCandidatesInWatchList(telegramUserId) {
     const telegramUser = await this.getTelegramUser(telegramUserId);
-    const promises = Object.keys(telegramUser.watchList).map((innKkey) => { return this.updateCandidateInWatchList(telegramUserId, innKkey)});
+    const promises = Object.keys(telegramUser.watchList).map((innKey) => { return this.updateCandidateInWatchList(telegramUserId, innKey)});
     return await Promise.all(promises);
   }
 

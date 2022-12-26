@@ -36,11 +36,11 @@ export class EasyDb {
   }
   
   async saveCopyToFile() {
-    const qwe  = path.parse(this.path);
-    delete qwe.base;
+    const parsedPath = path.parse(this.path);
+    delete parsedPath.base;
     const dateSignature = getDateTimeSignature(new Date());
-    qwe.name += '-copy-' + dateSignature;
-    const copyPath = path.format(qwe);
+    parsedPath.name += '-copy-' + dateSignature;
+    const copyPath = path.format(parsedPath);
     const datumText = JSON.stringify(this.datum);
     await fs.writeFile(copyPath, datumText, {encoding: 'utf8'});
   }
