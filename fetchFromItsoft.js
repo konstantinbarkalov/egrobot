@@ -2,8 +2,8 @@
 import fetch from 'node-fetch';
 
 
-export async function fetchFromItsoftActual(innKey) {
-  const safeInnOrOgrnKey = getSafeDigitsString(innKey);
+export async function fetchFromItsoftActual(innOrOgrnKey) {
+  const safeInnOrOgrnKey = getSafeDigitsString(innOrOgrnKey);
   const response = await fetch(`https://egrul.itsoft.ru/${safeInnOrOgrnKey}.json`);
   const entry = await response.json();
   return entry;
@@ -15,11 +15,11 @@ function getSafeDigitsString(input) {
   return safeDigitsString;
 }
 
-export async function fetchFromItsoft(innKey) {
-  if (innKey == '246004351629') {
+export async function fetchFromItsoft(innOrOgrnKey) {
+  if (innOrOgrnKey == '246004351629') {
     return fetchFromItsoftFake();
   } else {
-    return await fetchFromItsoftActual(innKey);
+    return await fetchFromItsoftActual(innOrOgrnKey);
   }
 }
 

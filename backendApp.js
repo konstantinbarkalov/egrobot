@@ -21,8 +21,8 @@ export class BackendApp {
     await this.easyDb.saveCopyToFile();
   }
 
-  async fetchEntitySnapshot(innKey) {
-    const entity = await fetchFromItsoft(innKey);
+  async fetchEntitySnapshot(innOrOgrnKey) {
+    const entity = await fetchFromItsoft(innOrOgrnKey);
     return entity;
   }
 
@@ -75,7 +75,8 @@ export class BackendApp {
   async addToWatchList(telegramUserId, innKey) {
     const isWasBefore = !!(await this.getWatchEntity(telegramUserId, innKey));
     if (!isWasBefore) {
-      const reference = await this.fetchEntitySnapshot(innKey);
+      const innOrOgrnKey = innKey;
+      const reference = await this.fetchEntitySnapshot(innOrOgrnKey);
       const newWatchEntity = {
         reference: reference,
         referenceFetchedDate: new Date(),
@@ -102,7 +103,8 @@ export class BackendApp {
 
   async updateCandidateInWatchList(telegramUserId, innKey) {
     const watchEntity = await this.getWatchEntity(telegramUserId, innKey);
-    const candidate = await this.fetchEntitySnapshot(innKey);
+    const innOrOgrnKey = innKey;
+    const candidate = await this.fetchEntitySnapshot(innOrOgrnKey);
     watchEntity.candidate = candidate;
     watchEntity.candidateFetchedDate = new Date();
     const diff = getJsonDiff(watchEntity.reference, watchEntity.candidate, true);

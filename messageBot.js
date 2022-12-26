@@ -30,11 +30,13 @@ export class MessageBot {
   async kill() {
     await this.backendApp.kill();
   }
+
   async getKeys(telegramUserId) {
     const telegramUserEntry = await this.backendApp.getTelegramUser(telegramUserId);
     const watchList = telegramUserEntry.watchList;
     return Object.keys(watchList);
   }
+
   getSmartShortNameText(watchEntity) {
     const isJuridistic = !!watchEntity.reference['СвЮЛ']; 
     let shortNameText;
@@ -156,10 +158,7 @@ export class MessageBot {
   }
 
   async getInfo(telegramUserId, innKey) {
-    const telegramUser = await this.backendApp.getTelegramUser(telegramUserId);
-    const watchList = telegramUser.watchList;
-    
-    const watchEntity =  watchList[innKey];
+    const watchEntity =  this.backendApp.getWatchEntity(telegramUserId, innKey);
     if (watchEntity) {
       const statusIconText = this.getStatusIconText(watchEntity.status);
       const favoriteIconText = watchEntity.isFavorite ? ' ⭐' : ''; 
@@ -187,15 +186,10 @@ export class MessageBot {
     }
      
   }
- 
 
   async getChanges(telegramUserId, innKey) {
-    const telegramUser = await this.backendApp.getTelegramUser(telegramUserId);
-    const watchList = telegramUser.watchList;
-    
-    const watchEntity =  watchList[innKey];
+    const watchEntity =  this.backendApp.getWatchEntity(telegramUserId, innKey);
     if (watchEntity) {
-      
       const diff = watchEntity.diff;
       const smartNameText = this.getSmartNameText(watchEntity); 
       const statusText = watchEntity.status === 'differs' ? 'ОБНАРУЖЕНЫ СЛЕДУЮЩИЕ ИЗМЕНЕНИЯ' : watchEntity.status === 'same' ? 'изменений нет' : watchEntity.status === 'new' ? 'впервые на мониторинге' : watchEntity.status === 'approved' ? 'принята новая версия референса' : watchEntity.status;
@@ -211,7 +205,6 @@ export class MessageBot {
       return [ new TextMessage(text.trim()) ];        
     }
   }
-
  
   async addToWatchList(telegramUserId, innKey) {
     const isAdded = await this.backendApp.addToWatchList(telegramUserId, innKey);
