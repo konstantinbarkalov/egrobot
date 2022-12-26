@@ -73,7 +73,6 @@ export class BackendApp {
   // high-level api
   
   async addToWatchList(telegramUserId, inn) {
-    const as = await this.getWatchEntity(telegramUserId, inn);
     const isWasBefore = !!(await this.getWatchEntity(telegramUserId, inn));
     if (!isWasBefore) {
       const reference = await this.fetchEntitySnapshot(inn);
@@ -86,6 +85,7 @@ export class BackendApp {
         diff: null,
         hasDiff: false,
         status: 'new',
+        isFavorite: false,
       }
       await this.setWatchEntity(telegramUserId, inn, newWatchEntity);
     }
@@ -132,6 +132,12 @@ export class BackendApp {
     } else {
       return false;
     }
+  }
+
+  async setIsFavorite(telegramUserId, inn, isFavorite) {
+    const watchEntity = await this.getWatchEntity(telegramUserId, inn);
+    watchEntity.isFavorite = isFavorite;
+    await this.setWatchEntity(telegramUserId, inn, watchEntity);
   }
 
   async updateAllCandidatesInWatchList(telegramUserId) {

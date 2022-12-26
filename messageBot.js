@@ -109,23 +109,23 @@ export class MessageBot {
   }
 
 getStatusIconText(status) {
-    switch (status) {
-      case 'same':
-        return '⚪️';        
-    
-      case 'differs':
-        return '🔴';
+  switch (status) {
+    case 'same':
+      return '⚪️';        
   
-      case 'new':
-        return '🔵';
-  
-      case 'approved':
-        return '🟢';
-  
-      default:
-        return '🟣';
-    }
+    case 'differs':
+      return '🔴';
+
+    case 'new':
+      return '🔵';
+
+    case 'approved':
+      return '🟢';
+
+    default:
+      return '🟣';
   }
+}
     
   // wrappers for public chat-human-api
 
@@ -139,11 +139,12 @@ getStatusIconText(status) {
         const smartName = this.getSmartNameText(watchEntity);
         const status = watchEntity.status === 'differs' ? 'ИЗМЕНИЯ ОБНАРУЖЕНЫ' : watchEntity.status === 'same' ? 'нет изм.' : watchEntity.status === 'new' ? 'впервые' : watchEntity.status === 'approved' ? 'прин.' : watchEntity.status;
         const statusIconText = this.getStatusIconText(watchEntity.status); 
+        const favoriteIconText = watchEntity.isFavorite ? ' ⭐' : ''; 
         const candidateRevDateText = this.getChangesRevDateText(watchEntity);
         if (watchEntity.hasDiff) {
           text += '<b>';  
         }
-        text += `${index + 1}. ${statusIconText} ${smartName} <i>${status} ${candidateRevDateText}</i>\n`;
+        text += `${index + 1}. ${statusIconText}${favoriteIconText} ${smartName} <i>${status} ${candidateRevDateText}</i>\n`;
         if (watchEntity.hasDiff) {
           text += '</b>';  
         }
@@ -161,6 +162,7 @@ getStatusIconText(status) {
     const watchEntity =  watchList[innKey];
     if (watchEntity) {
       const statusIconText = this.getStatusIconText(watchEntity.status);
+      const favoriteIconText = watchEntity.isFavorite ? ' ⭐' : ''; 
       const smartNameText = this.getSmartNameText(watchEntity); 
       const statusText = watchEntity.status === 'differs' ? 'ОБНАРУЖЕНЫ ИЗМЕНЕНИЯ' : watchEntity.status === 'same' ? 'изменений нет' : watchEntity.status === 'new' ? 'впервые на мониторинге' : watchEntity.status === 'approved' ? 'принята новая версия референса' : watchEntity.status;
       const candidateRevDateText = this.getChangesRevDateText(watchEntity);
@@ -168,7 +170,7 @@ getStatusIconText(status) {
       const url1 = '<a href="https://egrul.itsoft.ru/' + innKey + '">egrul.itsoft.ru</a>';
       const url2 = '<a href="https://www.rusprofile.ru/search?query=' + innKey + '">rusprofile.ru</a>';
       
-      let text = `<b>${statusIconText} ${smartNameText}</b>\nСтатус: ${statusText}\n`;
+      let text = `<b>${statusIconText}${favoriteIconText} ${smartNameText}</b>\nСтатус: ${statusText}\n`;
       
       text += `Дата выписки референс: ${referenceTimestampDateText}\n`;
       
@@ -198,10 +200,11 @@ getStatusIconText(status) {
       const smartNameText = this.getSmartNameText(watchEntity); 
       const statusText = watchEntity.status === 'differs' ? 'ОБНАРУЖЕНЫ СЛЕДУЮЩИЕ ИЗМЕНЕНИЯ' : watchEntity.status === 'same' ? 'изменений нет' : watchEntity.status === 'new' ? 'впервые на мониторинге' : watchEntity.status === 'approved' ? 'принята новая версия референса' : watchEntity.status;
       const statusIconText = this.getStatusIconText(watchEntity.status);
+      const favoriteIconText = watchEntity.isFavorite ? ' ⭐' : ''; 
       const candidateRevDateText = this.getChangesRevDateText(watchEntity);
       const diffText = this.getDiffText(diff);
         
-      const text = `${statusIconText} ${smartNameText}\n${statusText} ${candidateRevDateText}\n\n${diffText}`;
+      const text = `${statusIconText}${favoriteIconText} ${smartNameText}\n${statusText} ${candidateRevDateText}\n\n${diffText}`;
       return [ new TextMessage(text.trim()) ];
     } else {
       const text = `Организации по ключу ${innKey} не найдено`;
@@ -213,18 +216,18 @@ getStatusIconText(status) {
   async addToWatchList(telegramUserId, innKey) {
     const isAdded = await this.backendApp.addToWatchList(telegramUserId, innKey);
     if (isAdded) {
-      return [ new TextMessage(`🟢 Добавлен инн ${innKey}`) ];
+      return [ new TextMessage(`🔵 Добавлен ключу ${innKey}`) ];
     } else {
-      return [ new TextMessage(`Инн ${innKey} уже был добавлен в список до этого`) ];  
+      return [ new TextMessage(`ключу ${innKey} уже был добавлен в список до этого`) ];  
     }
   }
 
   async removeFromWatchList(telegramUserId, innKey) {
     const isRemoved = await this.backendApp.removeFromWatchList(telegramUserId, innKey);
     if (isRemoved) {
-      return [ new TextMessage(`Инн ${innKey} убран из списка и больше не мониторится`) ];    
+      return [ new TextMessage(`ключу ${innKey} убран из списка и больше не мониторится`) ];    
     } else {
-      return [ new TextMessage(`Инн ${innKey} убрать из списка мониторинга не удалось, скорее всего его там и не было`) ];
+      return [ new TextMessage(`ключу ${innKey} убрать из списка мониторинга не удалось, скорее всего его там и не было`) ];
     }
   }
 
@@ -234,7 +237,7 @@ getStatusIconText(status) {
     const status = await this.backendApp.updateCandidateInWatchList(telegramUserId, innKey);
     const statusIconText = this.getStatusIconText(watchEntity.status); 
         
-      return [ new TextMessage(`Выписка по инн ${innKey} обновлена. ${statusIconText} ${status === 'same' ? 'Изменений нет' : 'Изменения обнаружены'}`) ];
+      return [ new TextMessage(`Выписка по ключу ${innKey} обновлена. ${statusIconText} ${status === 'same' ? 'Изменений нет' : 'Изменения обнаружены'}`) ];
     } else {
       const text = `Организации по ключу ${innKey} не найдено`;
       return [ new TextMessage(text.trim()) ];        
@@ -246,9 +249,9 @@ getStatusIconText(status) {
     if (watchEntity) {
       const isApproved = await this.backendApp.approveCandidateToReferenceInWatchList(telegramUserId, innKey);
       if (isApproved) {
-        return [ new TextMessage(`🟢 Измененная выписка по Инн ${innKey} теперь принята за новый референс`) ];
+        return [ new TextMessage(`🟢 Измененная выписка по ключу ${innKey} теперь принята за новый референс`) ];
       } else {
-        return [ new TextMessage(`⚪️ В выписке по Инн ${innKey} не было зафиксировано измененией, по-этому принятия нового референса не произошло`) ];
+        return [ new TextMessage(`⚪️ В выписке по ключу ${innKey} не было зафиксировано измененией, по-этому принятия нового референса не произошло`) ];
       }
     } else {
       const text = `🟤 Организации по ключу ${innKey} не найдено`;
@@ -256,7 +259,7 @@ getStatusIconText(status) {
     }
   }
 
-  async updateAllCandidatesInWatchList(telegramUserId) {
+  async updateAllCandidatesInWatchList(telegramUserId) { // deprecared?
     const statuses = await this.backendApp.updateAllCandidatesInWatchList(telegramUserId);
     const isHasDiffers = statuses.includes('differs');
     let messageText = ''; 
@@ -267,15 +270,35 @@ getStatusIconText(status) {
     return [ new TextMessage(messageText.trim()) ];
   }
   
-  
+  async addToFavorite(telegramUserId, innKey) {
+    const watchEntity = await this.backendApp.getWatchEntity(telegramUserId, innKey);
+    if (watchEntity) {
+    const status = await this.backendApp.setIsFavorite(telegramUserId, innKey, true);
+      return [ new TextMessage(`⭐ Организация по ключу ${innKey} добавлена в избранное.`) ];
+    } else {
+      const text = `Организации по ключу ${innKey} не найдено`;
+      return [ new TextMessage(text.trim()) ];        
+    }
+  }
+
+  async removeFromFavorite(telegramUserId, innKey) {
+    const watchEntity = await this.backendApp.getWatchEntity(telegramUserId, innKey);
+    if (watchEntity) {
+    const status = await this.backendApp.setIsFavorite(telegramUserId, innKey, true);
+      return [ new TextMessage(`💫 Организация по ключу ${innKey} убрана из избранного.`) ];
+    } else {
+      const text = `Организации по ключу ${innKey} не найдено`;
+      return [ new TextMessage(text.trim()) ];        
+    }
+  }
 
   // auto
 
   async backendAutoupdateAllCandidatesHandler(messageBot, telegramUserId, updateAllResults) {
     const isHasDiffers = updateAllResults.includes('differs');
     let messageText = ''; 
+    messageText += 'Только что были автоматически загружены все выписки \n';
     messageText += isHasDiffers ? '🔴 ' : '⚪️ ';
-    messageText += 'Были автоматически загружены все выписки \n';
     messageText += isHasDiffers ? 'ИЗМЕНЕНИЯ ОБНАРУЖЕНЫ' : 'изменений нет';
     const messages = [ new TextMessage(messageText.trim()) ];
     await messageBot.autoupdateAllCandidatesHandler(telegramUserId, messages);

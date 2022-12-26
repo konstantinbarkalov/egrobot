@@ -171,6 +171,53 @@ export class TelegrafToMessageBotBinder {
       }
     });
 
+    this.telegramBot.command('fav', async (ctx) => {
+      const telegramUserId = ctx.chat.id;
+      const telegrafExtra = null; // { reply_to_message_id: ctx.message.message_id };
+      let params = ctx.update.message.text.split(' ').slice(1);
+      if (params.length > 0) {
+        if (params[0] === '*') {
+          params = await this.messageBot.getKeys(telegramUserId);
+        }
+        for (const param of params) {
+          const innKey = param;
+          const replyMessages = await this.messageBot.addToFavorite(telegramUserId, innKey);
+          for (const replyMessage of replyMessages) {
+            const replyMessageText = replyMessage.toString();
+            if (replyMessageText) {
+              await ctx.replyWithHTML(replyMessageText, telegrafExtra);
+            }
+          }
+        }
+      } else {
+        await ctx.replyWithHTML('Укажите ИНН или * для добавления в избранное', telegrafExtra);
+      }
+    });
+    
+    this.telegramBot.command('unfav', async (ctx) => {
+      const telegramUserId = ctx.chat.id;
+      const telegrafExtra = null; // { reply_to_message_id: ctx.message.message_id };
+      let params = ctx.update.message.text.split(' ').slice(1);
+      if (params.length > 0) {
+        if (params[0] === '*') {
+          params = await this.messageBot.getKeys(telegramUserId);
+        }
+        for (const param of params) {
+          const innKey = param;
+          const replyMessages = await this.messageBot.removeFromFavorite(telegramUserId, innKey);
+          for (const replyMessage of replyMessages) {
+            const replyMessageText = replyMessage.toString();
+            if (replyMessageText) {
+              await ctx.replyWithHTML(replyMessageText, telegrafExtra);
+            }
+          }
+        }
+      } else {
+        await ctx.replyWithHTML('Укажите ИНН или * для удаления из избранного', telegrafExtra);
+      }
+    });
+
+
     // auto
     async function messageBotAutoupdateAllCandidatesHandler(telegramBot, telegramUserId, messages) {
       for (const message of messages) {
