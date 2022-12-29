@@ -199,7 +199,10 @@ export class BackendAppMidLevelApi {
 
   async updateAllCandidatesInWatchList(telegramUserId) {
     const telegramUser = await this.lowLevelApi.getTelegramUser(telegramUserId);
-    const promises = Object.keys(telegramUser.watchList).map((watchEntityKey) => { return this.updateCandidateInWatchList(telegramUserId, watchEntityKey)});
+    const promises = telegramUser.watchList.map((watchEntity) => { 
+      const watchEntityKey = '#' + (watchEntity.internalIdx + 1);
+      return this.updateCandidateInWatchList(telegramUserId, watchEntityKey)
+    });
     return await Promise.all(promises);
   }
 

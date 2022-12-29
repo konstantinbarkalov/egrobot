@@ -181,8 +181,9 @@ export class BackendAppHighLevelApi {
       const statusText = watchEntity.status === 'differs' ? 'ОБНАРУЖЕНЫ ИЗМЕНЕНИЯ' : watchEntity.status === 'same' ? 'изменений нет' : watchEntity.status === 'new' ? 'впервые на мониторинге' : watchEntity.status === 'approved' ? 'принята новая версия референса' : watchEntity.status;
       const candidateRevDateText = this.getChangesRevDateText(watchEntity);
       const referenceTimestampDateText = this.getSmartTimestampDateText(watchEntity);
-      const url1 = '<a href="https://egrul.itsoft.ru/' + watchEntityKey + '">egrul.itsoft.ru</a>';
-      const url2 = '<a href="https://www.rusprofile.ru/search?query=' + watchEntityKey + '">rusprofile.ru</a>';
+      const inn = this.getSmartInnText(watchEntity);
+      const url1 = '<a href="https://egrul.itsoft.ru/' + inn + '">egrul.itsoft.ru</a>';
+      const url2 = '<a href="https://www.rusprofile.ru/search?query=' + inn + '">rusprofile.ru</a>';
       
       let text = `<b>${statusIconText}${favoriteIconText} ${smartNameText}</b>\nСтатус: ${statusText}\n`;
       

@@ -19,8 +19,7 @@ export class BackendApp {
     });
     this.bindTelegrafToApi();
     await this.topLevelApi.start();
-    await this.telegrafBot.launch();
-    console.log('i must see it');
+    this.telegrafBot.launch();
     this.restartWatch();
   }    
   
@@ -39,7 +38,9 @@ export class BackendApp {
     if (this.watchTimer) {
       this.stopWatch();
     }
-    this.autoupdateAllCandidates();
+    setTimeout(() => {
+      this.autoupdateAllCandidates();
+    }, 1000 * 5);
     this.watchTimer = setInterval(() => {
       this.autoupdateAllCandidates();
     }, 1000 * this.watchIntervalSec);
@@ -98,8 +99,12 @@ export class BackendApp {
   // auto
 
   async autoupdateAllCandidates() {
-    const messages = await this.topLevelApi.autoupdateAllCandidates();
-    await this.sendMessages(messages);
+    const telegramUsers = await this.topLevelApi.highLevelApi.midLevelApi.lowLevelApi.getAllTelegramUsers();
+    const telegramUserIds = Object.keys(telegramUsers);
+    for (const telegramUserId of telegramUserIds) {      
+      const messages = await this.topLevelApi.autoupdateAllCandidatesInWatchList(telegramUserId);
+      await this.sendMessages(messages);
+    }
   }  
   
 }
