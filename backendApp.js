@@ -1,178 +1,105 @@
-import { fetchFromItsoft } from './fetchFromItsoft.js';
-import { EasyDb } from './easyDb.js';
-import { getDiff as getJsonDiff } from 'json-difference'
+import exitHook from 'async-exit-hook';
+import { Telegraf } from 'telegraf';
+import { TextMessage } from './backendAppHighLevelApi.js';
+import { BackendAppTopLevelApi } from './backendAppTopLevelApi.js';
+import { telegramBotToken } from './secret.js';
 
 export class BackendApp {
-  easyDb = new EasyDb();
+  telegrafBot = new Telegraf(telegramBotToken);
+  topLevelApi = new BackendAppTopLevelApi();
   watchIntervalSec = 60 * 60 * 12;
   watchTimer = null;
+
   async start() {
-    const newDatum = { telegramUsers: {} };
-    await this.easyDb.start(newDatum);
+    exitHook(async (done) => {
+      console.warn('Killing backend and saving copy of easyDb...');
+      await this.kill();
+      console.warn('Exiting app...');
+      done();
+    });
+    this.bindTelegrafToApi();
+    await this.topLevelApi.start();
+    await this.telegrafBot.launch();
+    console.log('i must see it');
     this.restartWatch();
-  }
-
+  }    
+  
   async stop() {
-    await this.easyDb.stop();
     this.stopWatch();
+    await this.topLevelApi.stop();
+    await this.telegrafBot.stop();
   }
-
+  
   async kill() {
-    await this.easyDb.saveCopyToFile();
+    await this.topLevelApi.kill();
+    await this.telegrafBot.stop();
   }
-
-  async fetchEntitySnapshot(innOrOgrnKey) {
-    const entity = await fetchFromItsoft(innOrOgrnKey);
-    return entity;
-  }
-
-  // low-level api
-
   
-  async getAllTelegramUsers() {
-    const telegramUsers = this.easyDb.datum.telegramUsers;
-    return telegramUsers;
-  }
-
-  async getTelegramUser(telegramUserId) {
-    const telegramUser = this.easyDb.datum.telegramUsers[telegramUserId];
-    if (!telegramUser) {
-      const newTelegramUser = { watchList: {} };
-      await this.setTelegramUser(telegramUserId, newTelegramUser);
-      return newTelegramUser;
-    } else {
-      return telegramUser;
-    }
-  }
-
-  async setTelegramUser(telegramUserId, telegramUser) {
-    if (telegramUser) {
-      this.easyDb.datum.telegramUsers[telegramUserId] = telegramUser;
-    } else {
-      delete this.easyDb.datum.telegramUsers[telegramUserId];
-    }
-    await this.easyDb.saveToFile();
-  }
-
-  async getWatchEntity(telegramUserId, innKey) {
-    const telegramUser = await this.getTelegramUser(telegramUserId);
-    const watchEntity = telegramUser.watchList[innKey];
-    return watchEntity;
-  }
-
-  async setWatchEntity(telegramUserId, innKey, watchEntity) {
-    const telegramUser = await this.getTelegramUser(telegramUserId);
-    if (watchEntity) {
-      telegramUser.watchList[innKey] = watchEntity;
-    } else {
-      delete telegramUser.watchList[innKey];
-    }
-    await this.setTelegramUser(telegramUserId, telegramUser);
-  }
-
-  // high-level api
-  
-  async addToWatchList(telegramUserId, innKey) {
-    const isWasBefore = !!(await this.getWatchEntity(telegramUserId, innKey));
-    if (!isWasBefore) {
-      const innOrOgrnKey = innKey;
-      const reference = await this.fetchEntitySnapshot(innOrOgrnKey);
-      const newWatchEntity = {
-        reference: reference,
-        referenceFetchedDate: new Date(),
-        candidate: null,
-        candidateFetchedDate: null,
-        referenceApprovedDate: null,
-        diff: null,
-        hasDiff: false,
-        status: 'new',
-        isFavorite: false,
-      }
-      await this.setWatchEntity(telegramUserId, innKey, newWatchEntity);
-    }
-    return !isWasBefore;
-  }
-
-  async removeFromWatchList(telegramUserId, innKey) {
-    const isWasBefore = !!(await this.getWatchEntity(telegramUserId, innKey));
-    if (isWasBefore) {
-      await this.setWatchEntity(telegramUserId, innKey, null);
-    }
-    return isWasBefore;
-  }
-
-  async updateCandidateInWatchList(telegramUserId, innKey) {
-    const watchEntity = await this.getWatchEntity(telegramUserId, innKey);
-    const innOrOgrnKey = innKey;
-    const candidate = await this.fetchEntitySnapshot(innOrOgrnKey);
-    watchEntity.candidate = candidate;
-    watchEntity.candidateFetchedDate = new Date();
-    const diff = getJsonDiff(watchEntity.reference, watchEntity.candidate, true);
-    const hasDiff = diff.added.length > 0 || diff.removed.length > 0 || diff.edited.length > 0;
-    const status = (hasDiff) ? 'differs' : 'same';
-    watchEntity.diff = diff;
-    watchEntity.hasDiff = hasDiff;
-    watchEntity.status = status;
-    await this.setWatchEntity(telegramUserId, innKey, watchEntity);
-    return status;
-  }
-
-  async approveCandidateToReferenceInWatchList(telegramUserId, innKey) {
-    const watchEntity = await this.getWatchEntity(telegramUserId, innKey);
-    const hasDiff = watchEntity.hasDiff;
-    if (hasDiff) {
-      watchEntity.reference = watchEntity.candidate;
-      watchEntity.referenceFetchedDate = watchEntity.candidateFetchedDate;
-      watchEntity.candidate = null;
-      watchEntity.candidateFetchedDate = null;
-      watchEntity.referenceApprovedDate = new Date(),
-      watchEntity.diff = null,
-      watchEntity.hasDiff = false,
-      watchEntity.status = 'approved',
-      await this.setWatchEntity(telegramUserId, innKey, watchEntity);
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  async setIsFavorite(telegramUserId, innKey, isFavorite) {
-    const watchEntity = await this.getWatchEntity(telegramUserId, innKey);
-    watchEntity.isFavorite = isFavorite;
-    await this.setWatchEntity(telegramUserId, innKey, watchEntity);
-  }
-
-  async updateAllCandidatesInWatchList(telegramUserId) {
-    const telegramUser = await this.getTelegramUser(telegramUserId);
-    const promises = Object.keys(telegramUser.watchList).map((innKey) => { return this.updateCandidateInWatchList(telegramUserId, innKey)});
-    return await Promise.all(promises);
-  }
-
-  async autoupdateAllCandidates() {
-    const telegramUsers = await this.getAllTelegramUsers();
-    for (const telegramUserId in telegramUsers) {
-      //const telegramUser = telegramUsers[telegramUserId];
-      const updateAllResults = await this.updateAllCandidatesInWatchList(telegramUserId);
-      await this.autoupdateAllCandidatesHandler(telegramUserId, updateAllResults);
-    }
-  }
-  async autoupdateAllCandidatesHandler(telegramUserId, updateAllResults) {
-    // assign on init 
-  }
-
   restartWatch() {
     if (this.watchTimer) {
       this.stopWatch();
     }
     this.autoupdateAllCandidates();
-    this.autosaveTimer = setInterval(() => {
+    this.watchTimer = setInterval(() => {
       this.autoupdateAllCandidates();
     }, 1000 * this.watchIntervalSec);
   }
 
   stopWatch() {
     clearInterval(this.watchTimer);
-    this.autosaveTimer = null;
+    this.watchTimer = null;
   }
 
+  async sendMessages(messages) {
+    for (const message of messages) {
+      if (message instanceof TextMessage) {
+        let replyMarkup;
+        if (message.buttons && message.buttons.length) {
+          replyMarkup = 'TODO'; //TODO
+        } 
+        const extra = { 
+          parse_mode: message.isHtml ? 'HTML' : undefined, 
+          // reply_to_message_id: TODO, 
+          reply_markup: replyMarkup, 
+          disable_web_page_preview: message.isDisablePreview, 
+          disable_notification: message.isSilent
+        };
+        
+        await this.telegrafBot.telegram.sendMessage(message.telegramUserId, message.text, extra);
+
+      } else {
+        throw new TypeError('unknown message type');
+      }
+    }
+  }
+
+  async wrapApiToTelegraph(ctx, fn) {
+    const telegramUserId = ctx.chat.id;
+    let params = ctx.update.message.text.split(' ').slice(1);
+    let messages = await fn(telegramUserId, params);
+    await this.sendMessages(messages);
+  }
+
+  async bindTelegrafToApi() {
+    this.telegrafBot.start((ctx) => { this.wrapApiToTelegraph(ctx, (telegramUserId) => this.topLevelApi.welcome(telegramUserId)) });
+    this.telegrafBot.help((ctx) => { this.wrapApiToTelegraph(ctx, (telegramUserId) => this.topLevelApi.help(telegramUserId)) });
+
+    this.telegrafBot.command('list', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId) => this.topLevelApi.list(telegramUserId)));
+    this.telegrafBot.command('info', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.info(telegramUserId, params)));
+    this.telegrafBot.command('diff', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.diff(telegramUserId, params)));
+    this.telegrafBot.command('add', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.add(telegramUserId, params)));
+    this.telegrafBot.command('remove', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.remove(telegramUserId, params)));
+    this.telegrafBot.command('update', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.update(telegramUserId, params)));
+    this.telegrafBot.command('approve', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.approve(telegramUserId, params)));
+    this.telegrafBot.command('fav', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.fav(telegramUserId, params)));
+    this.telegrafBot.command('unfav', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.unfav(telegramUserId, params)));
+  }
+  
+  // auto
+
+  async autoupdateAllCandidates() {
+    const messages = await this.topLevelApi.autoupdateAllCandidates();
+    await this.sendMessages(messages);
+  }  
+  
 }

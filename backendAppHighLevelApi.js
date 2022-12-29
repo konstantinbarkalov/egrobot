@@ -1,40 +1,54 @@
-import { BackendApp } from './backendApp.js';
+import { BackendAppMidLevelApi } from './backendAppMidLevelApi.js';
 import { getRevDateText } from './utils.js'
-export class AbstractMessage {
-}
 
-export class TextMessage extends AbstractMessage {
-  text = '';
-  constructor(text) {
-    super();
+export class TextMessage {
+  telegramUserId = null;
+  text = null;
+  isHtml = true;
+  isDisablePreview = true;
+  isSilent = false;
+  constructor(telegramUserId, text) {
+    this.telegramUserId = telegramUserId;
     this.text = text;
   }
-  toString() {
-    return this.text;
-  }
 }
 
-export class MessageBot {
-  backendApp = new BackendApp();
+export class BackendAppHighLevelApi {
+  midLevelApi = new BackendAppMidLevelApi();
 
   async start() {
-    this.backendApp.autoupdateAllCandidatesHandler = async (telegramUserId, updateAllResults) => { return await this.backendAutoupdateAllCandidatesHandler(this, telegramUserId, updateAllResults); }; 
-    await this.backendApp.start();
+    await this.midLevelApi.start();
   }
 
   async stop() {
-    await this.backendApp.stop();
-    backendApp.autoupdateAllCandidatesHandler = () => {}; 
+    await this.midLevelApi.stop();
   }
 
   async kill() {
-    await this.backendApp.kill();
+    await this.midLevelApi.kill();
   }
+  
+  // utils
 
-  async getKeys(telegramUserId) {
-    const telegramUserEntry = await this.backendApp.getTelegramUser(telegramUserId);
+  async parseWildcard(telegramUserId, params) {
+    const wildcard = params[0];
+    const telegramUserEntry = await this.midLevelApi.lowLevelApi.getTelegramUser(telegramUserId);
     const watchList = telegramUserEntry.watchList;
-    return Object.keys(watchList);
+    let filteredWatchList;
+    if (wildcard === '*' ) {
+      filteredWatchList = watchList;
+    } else if (wildcard === '+') {
+      filteredWatchList = watchList.filter((watchEntity) => {
+        return watchEntity.isFavorite;
+      });
+    } else if (wildcard === '!') {
+      filteredWatchList = watchList.filter((watchEntity) => {
+        return watchEntity.hasDiff;
+      });
+    } else {
+      return params;
+    }
+    return filteredWatchList.map((watchEntity) => '#' + (watchEntity.internalIdx + 1))
   }
 
   getSmartShortNameText(watchEntity) {
@@ -74,7 +88,7 @@ export class MessageBot {
 
   getSmartTimestampDateText(watchEntity) {
     const dateText = watchEntity.reference['@attributes']['ДатаВыг'];
-    return dateText;  
+    return dateText;
   } 
 
   getChangesRevDateText(watchEntity) {
@@ -129,10 +143,10 @@ export class MessageBot {
     }
   }
       
-  // wrappers for public chat-human-api
+  // high-level api
 
   async getWatchList(telegramUserId) {
-    const telegramUser = await this.backendApp.getTelegramUser(telegramUserId);
+    const telegramUser = await this.midLevelApi.lowLevelApi.getTelegramUser(telegramUserId);
     const watchList = telegramUser.watchList;
     let text = '';
     const watchListValues = Object.values(watchList);
@@ -146,7 +160,8 @@ export class MessageBot {
         if (watchEntity.hasDiff) {
           text += '<b>';  
         }
-        text += `${index + 1}. ${statusIconText}${favoriteIconText} ${smartName} <i>${status} ${candidateRevDateText}</i>\n`;
+        text += `${index + 1}. ${statusIconText}${favoriteIconText} ${smartName}\n`;
+        text += `     2022-12-14 (<i>${status} ${candidateRevDateText}</i>)\n\n`;
         if (watchEntity.hasDiff) {
           text += '</b>';  
         }
@@ -154,11 +169,11 @@ export class MessageBot {
     } else {
       text = 'Ваш список организаций пуст. Добавьте первую с помощью комманды /add и далее ИНН, Например: /add 7737117010'
     }
-    return [ new TextMessage(text.trim()) ];
+    return [ new TextMessage(telegramUserId, text.trim()) ];
   }
 
-  async getInfo(telegramUserId, innKey) {
-    const watchEntity =  this.backendApp.getWatchEntity(telegramUserId, innKey);
+  async getInfo(telegramUserId, watchEntityKey) {
+    const watchEntity = await this.midLevelApi.getWatchEntity(telegramUserId, watchEntityKey);
     if (watchEntity) {
       const statusIconText = this.getStatusIconText(watchEntity.status);
       const favoriteIconText = watchEntity.isFavorite ? ' ⭐' : ''; 
@@ -166,8 +181,8 @@ export class MessageBot {
       const statusText = watchEntity.status === 'differs' ? 'ОБНАРУЖЕНЫ ИЗМЕНЕНИЯ' : watchEntity.status === 'same' ? 'изменений нет' : watchEntity.status === 'new' ? 'впервые на мониторинге' : watchEntity.status === 'approved' ? 'принята новая версия референса' : watchEntity.status;
       const candidateRevDateText = this.getChangesRevDateText(watchEntity);
       const referenceTimestampDateText = this.getSmartTimestampDateText(watchEntity);
-      const url1 = '<a href="https://egrul.itsoft.ru/' + innKey + '">egrul.itsoft.ru</a>';
-      const url2 = '<a href="https://www.rusprofile.ru/search?query=' + innKey + '">rusprofile.ru</a>';
+      const url1 = '<a href="https://egrul.itsoft.ru/' + watchEntityKey + '">egrul.itsoft.ru</a>';
+      const url2 = '<a href="https://www.rusprofile.ru/search?query=' + watchEntityKey + '">rusprofile.ru</a>';
       
       let text = `<b>${statusIconText}${favoriteIconText} ${smartNameText}</b>\nСтатус: ${statusText}\n`;
       
@@ -179,16 +194,16 @@ export class MessageBot {
       }
       
       text += `Загружено: ${candidateRevDateText}\nСсылки: ${url1} | ${url2}`;
-      return [ new TextMessage(text.trim()) ];
+      return [ new TextMessage(telegramUserId, text.trim()) ];
     } else {
-      const text = `Организации по ключу ${innKey} не найдено`;
-      return [ new TextMessage(text.trim()) ];        
+      const text = `Организации по ключу ${watchEntityKey} не найдено`;
+      return [ new TextMessage(telegramUserId, text.trim()) ];        
     }
      
   }
 
-  async getChanges(telegramUserId, innKey) {
-    const watchEntity =  this.backendApp.getWatchEntity(telegramUserId, innKey);
+  async getChanges(telegramUserId, watchEntityKey) {
+    const watchEntity = await this.midLevelApi.getWatchEntity(telegramUserId, watchEntityKey);
     if (watchEntity) {
       const diff = watchEntity.diff;
       const smartNameText = this.getSmartNameText(watchEntity); 
@@ -199,106 +214,85 @@ export class MessageBot {
       const diffText = this.getDiffText(diff);
         
       const text = `${statusIconText}${favoriteIconText} ${smartNameText}\n${statusText} ${candidateRevDateText}\n\n${diffText}`;
-      return [ new TextMessage(text.trim()) ];
+      return [ new TextMessage(telegramUserId, text.trim()) ];
     } else {
-      const text = `Организации по ключу ${innKey} не найдено`;
-      return [ new TextMessage(text.trim()) ];        
+      const text = `Организации по ключу ${watchEntityKey} не найдено`;
+      return [ new TextMessage(telegramUserId, text.trim()) ];        
     }
   }
  
-  async addToWatchList(telegramUserId, innKey) {
-    const isAdded = await this.backendApp.addToWatchList(telegramUserId, innKey);
+  async addToWatchList(telegramUserId, watchEntityKey) {
+    const isAdded = await this.midLevelApi.addToWatchList(telegramUserId, watchEntityKey);
     if (isAdded) {
-      return [ new TextMessage(`🔵 Добавлен ключу ${innKey}`) ];
+      return [ new TextMessage(telegramUserId, `🔵 Добавлен ключ ${watchEntityKey}`) ];
     } else {
-      return [ new TextMessage(`ключу ${innKey} уже был добавлен в список до этого`) ];  
+      return [ new TextMessage(telegramUserId, `ключ ${watchEntityKey} уже был добавлен в список до этого`) ];  
     }
   }
 
-  async removeFromWatchList(telegramUserId, innKey) {
-    const isRemoved = await this.backendApp.removeFromWatchList(telegramUserId, innKey);
+  async removeFromWatchList(telegramUserId, watchEntityKey) {
+    const isRemoved = await this.midLevelApi.removeFromWatchList(telegramUserId, watchEntityKey);
     if (isRemoved) {
-      return [ new TextMessage(`Организация по ключу ${innKey} убрана из списка и больше не мониторится`) ];    
+      return [ new TextMessage(telegramUserId, `Организация по ключу ${watchEntityKey} убрана из списка и больше не мониторится`) ];    
     } else {
-      return [ new TextMessage(`Организацию по ключу ${innKey} убрать из списка мониторинга не удалось, скорее всего ее там и не было`) ];
+      return [ new TextMessage(telegramUserId, `Организацию по ключу ${watchEntityKey} убрать из списка мониторинга не удалось, скорее всего ее там и не было`) ];
     }
   }
 
-  async updateCandidateInWatchList(telegramUserId, innKey) {
-    const watchEntity = await this.backendApp.getWatchEntity(telegramUserId, innKey);
-    if (watchEntity) {
-    const status = await this.backendApp.updateCandidateInWatchList(telegramUserId, innKey);
-    const statusIconText = this.getStatusIconText(watchEntity.status); 
-        
-      return [ new TextMessage(`Выписка по ключу ${innKey} обновлена. ${statusIconText} ${status === 'same' ? 'Изменений нет' : 'Изменения обнаружены'}`) ];
+  async updateCandidateInWatchList(telegramUserId, watchEntityKey) {
+    const status = await this.midLevelApi.updateCandidateInWatchList(telegramUserId, watchEntityKey);
+    if (status) {
+    const statusIconText = this.getStatusIconText(status);         
+      return [ new TextMessage(telegramUserId, `Выписка по ключу ${watchEntityKey} обновлена. ${statusIconText} ${status === 'same' ? 'Изменений нет' : 'Изменения обнаружены'}`) ];
     } else {
-      const text = `Организации по ключу ${innKey} не найдено`;
-      return [ new TextMessage(text.trim()) ];        
+      const text = `Организации по ключу ${watchEntityKey} не найдено`;
+      return [ new TextMessage(telegramUserId, text.trim()) ];        
     }
   }
 
-  async approveCandidateToReferenceInWatchList(telegramUserId, innKey) {
-    const watchEntity = await this.backendApp.getWatchEntity(telegramUserId, innKey);
-    if (watchEntity) {
-      const isApproved = await this.backendApp.approveCandidateToReferenceInWatchList(telegramUserId, innKey);
-      if (isApproved) {
-        return [ new TextMessage(`🟢 Измененная выписка по ключу ${innKey} теперь принята за новый референс`) ];
-      } else {
-        return [ new TextMessage(`⚪️ В выписке по ключу ${innKey} не было зафиксировано измененией, по-этому принятия нового референса не произошло`) ];
-      }
+  async approveCandidateToReferenceInWatchList(telegramUserId, watchEntityKey) {
+    const isApproved = await this.midLevelApi.approveCandidateToReferenceInWatchList(telegramUserId, watchEntityKey);
+    if (isApproved === true) {
+      return [ new TextMessage(telegramUserId, `🟢 Измененная выписка по ключу ${watchEntityKey} теперь принята за новый референс`) ];
+    } else if (isApproved === false) {
+      return [ new TextMessage(telegramUserId, `⚪️ В выписке по ключу ${watchEntityKey} не было зафиксировано измененией, по-этому принятия нового референса не произошло`) ];
     } else {
-      const text = `🟤 Организации по ключу ${innKey} не найдено`;
-      return [ new TextMessage(text.trim()) ];        
+      return [ new TextMessage(telegramUserId, `🟤 Организации по ключу ${watchEntityKey} не найдено`) ];        
     }
-  }
-
-  async updateAllCandidatesInWatchList(telegramUserId) { // deprecared?
-    const statuses = await this.backendApp.updateAllCandidatesInWatchList(telegramUserId);
-    const isHasDiffers = statuses.includes('differs');
-    let messageText = ''; 
-    messageText += isHasDiffers ? '🔴 ' : '⚪️ ';
-    messageText += 'Все выписки были загружены \n';
-    messageText += isHasDiffers ? 'ИЗМЕНЕНИЯ ОБНАРУЖЕНЫ' : 'изменений нет';
-  
-    return [ new TextMessage(messageText.trim()) ];
   }
   
-  async addToFavorite(telegramUserId, innKey) {
-    const watchEntity = await this.backendApp.getWatchEntity(telegramUserId, innKey);
-    if (watchEntity) {
-    const status = await this.backendApp.setIsFavorite(telegramUserId, innKey, true);
-      return [ new TextMessage(`⭐ Организация по ключу ${innKey} добавлена в избранное.`) ];
+  async addToFavorite(telegramUserId, watchEntityKey) {
+    const status = await this.midLevelApi.setIsFavorite(telegramUserId, watchEntityKey, true);
+    if (status) {
+      return [ new TextMessage(telegramUserId, `⭐ Организация по ключу ${watchEntityKey} добавлена в избранное.`) ];
     } else {
-      const text = `Организации по ключу ${innKey} не найдено`;
-      return [ new TextMessage(text.trim()) ];        
+      const text = `Организации по ключу ${watchEntityKey} не найдено`;
+      return [ new TextMessage(telegramUserId, text.trim()) ];        
     }
   }
 
-  async removeFromFavorite(telegramUserId, innKey) {
-    const watchEntity = await this.backendApp.getWatchEntity(telegramUserId, innKey);
-    if (watchEntity) {
-    const status = await this.backendApp.setIsFavorite(telegramUserId, innKey, true);
-      return [ new TextMessage(`💫 Организация по ключу ${innKey} убрана из избранного.`) ];
+  async removeFromFavorite(telegramUserId, watchEntityKey) {
+    const status = await this.midLevelApi.setIsFavorite(telegramUserId, watchEntityKey, false);
+    if (status) {
+      return [ new TextMessage(telegramUserId, `💫 Организация по ключу ${watchEntityKey} убрана из избранного.`) ];
     } else {
-      const text = `Организации по ключу ${innKey} не найдено`;
-      return [ new TextMessage(text.trim()) ];        
+      const text = `Организации по ключу ${watchEntityKey} не найдено`;
+      return [ new TextMessage(telegramUserId, text.trim()) ];        
     }
   }
 
   // auto
 
-  async backendAutoupdateAllCandidatesHandler(messageBot, telegramUserId, updateAllResults) {
-    const isHasDiffers = updateAllResults.includes('differs');
+  async autoupdateAllCandidatesInWatchList(telegramUserId) {
+    const statuses = await this.midLevelApi.updateAllCandidatesInWatchList(telegramUserId);
+    const status = statuses.includes('differs') ? 'differs' : 'same' ;
+    const statusIconText = this.getStatusIconText(status);
     let messageText = ''; 
     messageText += 'Только что были автоматически загружены все выписки \n';
-    messageText += isHasDiffers ? '🔴 ' : '⚪️ ';
-    messageText += isHasDiffers ? 'ИЗМЕНЕНИЯ ОБНАРУЖЕНЫ' : 'изменений нет';
-    const messages = [ new TextMessage(messageText.trim()) ];
-    await messageBot.autoupdateAllCandidatesHandler(telegramUserId, messages);
-    ;
-  } 
-
-  async autoupdateAllCandidatesHandler(telegramUserId, messages) {
-    // assign on init 
+    messageText += statusIconText;
+    messageText += (status === 'differs') ? 'ИЗМЕНЕНИЯ ОБНАРУЖЕНЫ' : 'изменений нет';
+    const messages = [ new TextMessage(telegramUserId, messageText.trim()) ];
+    return messages;
   }
+  
 }

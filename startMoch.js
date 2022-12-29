@@ -15,7 +15,7 @@ exitHook(async (done) => {
 function printMessages(messages) {
   messages.forEach(message => {
     console.log('/""""""');
-    console.log(message.toString());
+    console.log(message.text);
     console.log('\\______');
   });
 }

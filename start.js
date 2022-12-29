@@ -1,5 +1,4 @@
-import { TelegrafToMessageBotBinder } from './telegrafToMessageBotBinder.js';
+import { BackendApp } from './backendApp.js';
 
-
-const telegrafToMessageBotBinder = new TelegrafToMessageBotBinder();
-await telegrafToMessageBotBinder.start();
+const backendApp = new BackendApp();
+await backendApp.start();
