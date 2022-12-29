@@ -1,6 +1,6 @@
 {
   "name": "egrobot",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "monitoring changes in EGRUL and EGRIP",
   "main": "index.js",
   "type": "module",
