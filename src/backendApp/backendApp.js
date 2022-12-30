@@ -2,7 +2,7 @@ import exitHook from 'async-exit-hook';
 import { Telegraf, Markup } from 'telegraf';
 import { TextMessage } from './backendAppHighLevelApi.js';
 import { BackendAppTopLevelApi } from './backendAppTopLevelApi.js';
-import { telegramBotToken } from './secret.js';
+import { telegramBotToken } from '../../secret.js';
 
 export class BackendApp {
   telegrafBot = new Telegraf(telegramBotToken);

@@ -1,6 +1,6 @@
 import { BackendAppHighLevelApi, TextMessage } from './backendAppHighLevelApi.js';
 import fs from 'fs';
-const externalHelpText = fs.readFileSync('./help.txt','utf8');
+const externalHelpText = fs.readFileSync('./txt/help.txt','utf8');
 
 export class BackendAppTopLevelApi {
   highLevelApi = new BackendAppHighLevelApi();
@@ -96,6 +96,7 @@ export class BackendAppTopLevelApi {
   async help(telegramUserId) {
     return [new TextMessage(telegramUserId, this.helpText)];    
   };
+  
   // auto
 
   async autoupdateAllCandidatesInWatchList(telegramUserId) {

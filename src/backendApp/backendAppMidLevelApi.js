@@ -1,4 +1,4 @@
-import { fetchFromItsoft } from './fetchFromItsoft.js';
+import { fetchFromItsoft } from './../fetchFromItsoft.js';
 import { getDiff as getJsonDiff } from 'json-difference'
 import { BackendAppError, BackendAppLowLevelApi } from './backendAppLowLevelApi.js';
 

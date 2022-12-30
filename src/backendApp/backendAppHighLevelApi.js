@@ -1,5 +1,5 @@
 import { BackendAppMidLevelApi } from './backendAppMidLevelApi.js';
-import { getRevDateText } from './utils.js'
+import { getRevDateText } from './../utils.js'
 
 export class TextMessage {
   telegramUserId = null;

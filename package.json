@@ -1,11 +1,11 @@
 {
   "name": "egrobot",
   "version": "0.1.0",
-  "description": "monitoring changes in EGRUL and EGRIP",
+  "description": "Telegram bot to monitor EGRUL and EGRIP chages via egrul.itsoft.ru public API",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node start.js"
+    "start": "node src/start.js"
   },
   "keywords": [
     "EGRUL",

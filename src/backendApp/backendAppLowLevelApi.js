@@ -1,4 +1,4 @@
-import { EasyDb } from './easyDb.js';
+import { EasyDb } from './../easyDb.js';
 export class BackendAppError extends Error {
 
 }
