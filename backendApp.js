@@ -1,5 +1,5 @@
 import exitHook from 'async-exit-hook';
-import { Telegraf } from 'telegraf';
+import { Telegraf, Markup } from 'telegraf';
 import { TextMessage } from './backendAppHighLevelApi.js';
 import { BackendAppTopLevelApi } from './backendAppTopLevelApi.js';
 import { telegramBotToken } from './secret.js';
@@ -55,8 +55,9 @@ export class BackendApp {
     for (const message of messages) {
       if (message instanceof TextMessage) {
         let replyMarkup;
-        if (message.buttons && message.buttons.length) {
-          replyMarkup = 'TODO'; //TODO
+        if (message.buttons && message.buttons.length) {  
+          const buttons = message.buttons.map(button => Markup.button.callback(button.text, button.action));        
+          replyMarkup = Markup.inlineKeyboard(buttons).reply_markup;     
         } 
         const extra = { 
           parse_mode: message.isHtml ? 'HTML' : undefined, 
@@ -76,9 +77,13 @@ export class BackendApp {
 
   async wrapApiToTelegraph(ctx, fn) {
     const telegramUserId = ctx.chat.id;
-    let params = ctx.update.message.text.split(' ').slice(1);
+    const message = ctx.update.message ? ctx.update.message.text : ctx.update.callback_query.data;
+    let params = message.split(' ').slice(1);
     let messages = await fn(telegramUserId, params);
     await this.sendMessages(messages);
+    if (ctx.update.callback_query) {
+      await ctx.answerCbQuery();
+    }
   }
 
   async bindTelegrafToApi() {
@@ -94,6 +99,18 @@ export class BackendApp {
     this.telegrafBot.command('approve', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.approve(telegramUserId, params)));
     this.telegrafBot.command('fav', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.fav(telegramUserId, params)));
     this.telegrafBot.command('unfav', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.unfav(telegramUserId, params)));
+        
+    this.telegrafBot.action(/list+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId) => this.topLevelApi.list(telegramUserId)));
+    this.telegrafBot.action(/info+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.info(telegramUserId, params)));
+    this.telegrafBot.action(/diff+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.diff(telegramUserId, params)));
+    this.telegrafBot.action(/add+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.add(telegramUserId, params)));
+    this.telegrafBot.action(/remove+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.remove(telegramUserId, params)));
+    this.telegrafBot.action(/update+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.update(telegramUserId, params)));
+    this.telegrafBot.action(/approve+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.approve(telegramUserId, params)));
+    this.telegrafBot.action(/fav+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.fav(telegramUserId, params)));
+    this.telegrafBot.action(/unfav+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.unfav(telegramUserId, params)));
+    
+  
   }
   
   // auto

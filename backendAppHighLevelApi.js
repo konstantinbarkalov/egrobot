@@ -7,9 +7,19 @@ export class TextMessage {
   isHtml = true;
   isDisablePreview = true;
   isSilent = false;
-  constructor(telegramUserId, text) {
+  buttons = null;
+  constructor(telegramUserId, text, buttons = null) {
     this.telegramUserId = telegramUserId;
     this.text = text;
+    this.buttons = buttons;
+  }
+}
+export class MessageButton {
+  text = null;
+  action = null;
+  constructor(text, action) {
+    this.text = text;
+    this.action = action;
   }
 }
 
@@ -195,7 +205,12 @@ export class BackendAppHighLevelApi {
       }
       
       text += `Загружено: ${candidateRevDateText}\nСсылки: ${url1} | ${url2}`;
-      return [ new TextMessage(telegramUserId, text.trim()) ];
+      const internalKey = '#' + (watchEntity.internalIdx + 1);
+      let buttons;
+      if (watchEntity.hasDiff) {
+        buttons = [ new MessageButton('Показать изменения', '/diff ' + internalKey) ];
+      }
+      return [ new TextMessage(telegramUserId, text.trim(), buttons ) ];
     } else {
       const text = `Организации по ключу ${watchEntityKey} не найдено`;
       return [ new TextMessage(telegramUserId, text.trim()) ];        
@@ -206,16 +221,21 @@ export class BackendAppHighLevelApi {
   async getChanges(telegramUserId, watchEntityKey) {
     const watchEntity = await this.midLevelApi.getWatchEntity(telegramUserId, watchEntityKey);
     if (watchEntity) {
-      const diff = watchEntity.diff;
       const smartNameText = this.getSmartNameText(watchEntity); 
       const statusText = watchEntity.status === 'differs' ? 'ОБНАРУЖЕНЫ СЛЕДУЮЩИЕ ИЗМЕНЕНИЯ' : watchEntity.status === 'same' ? 'изменений нет' : watchEntity.status === 'new' ? 'впервые на мониторинге' : watchEntity.status === 'approved' ? 'принята новая версия референса' : watchEntity.status;
       const statusIconText = this.getStatusIconText(watchEntity.status);
       const favoriteIconText = watchEntity.isFavorite ? ' ⭐' : ''; 
       const candidateRevDateText = this.getChangesRevDateText(watchEntity);
-      const diffText = this.getDiffText(diff);
+      const diffText = this.getDiffText(watchEntity.diff);
         
       const text = `${statusIconText}${favoriteIconText} ${smartNameText}\n${statusText} ${candidateRevDateText}\n\n${diffText}`;
-      return [ new TextMessage(telegramUserId, text.trim()) ];
+      const internalKey = '#' + (watchEntity.internalIdx + 1);
+      let buttons = [];
+      if (watchEntity.hasDiff) {
+        buttons.push( new MessageButton('Принять изменения', '/approve ' + internalKey) );
+      }
+      buttons.push( new MessageButton('Информация о предприятии', '/info ' + internalKey) );      
+      return [ new TextMessage(telegramUserId, text.trim(), buttons) ];
     } else {
       const text = `Организации по ключу ${watchEntityKey} не найдено`;
       return [ new TextMessage(telegramUserId, text.trim()) ];        
