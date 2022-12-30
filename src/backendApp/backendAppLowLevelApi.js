@@ -97,7 +97,7 @@ export class BackendAppLowLevelApi {
 
   async deleteWatchEntity(telegramUserId, internalIdx) {
     const telegramUser = await this.getTelegramUser(telegramUserId);
-    const watchEntity = await this.getWatchEntity(telegramUserId, watchEntity.internalIdx);
+    const watchEntity = await this.getWatchEntity(telegramUserId, internalIdx);
     if (watchEntity) {
       delete telegramUser.watchList[internalIdx];
       telegramUser.watchList.forEach((watchEntity, idx) => watchEntity.internalIdx = idx);
