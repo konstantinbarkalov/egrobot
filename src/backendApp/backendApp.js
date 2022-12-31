@@ -74,41 +74,53 @@ export class BackendApp {
       }
     }
   }
-
-  async wrapApiToTelegraph(ctx, fn) {
+  commandTextToParams(commandText) {
+    const params = commandText.split(' ').slice(1);
+    return params;
+  }
+  async wrapApiToTelegraphCommand(ctx, fn) {
     const telegramUserId = ctx.chat.id;
-    const message = ctx.update.message ? ctx.update.message.text : ctx.update.callback_query.data;
-    let params = message.split(' ').slice(1);
+    const commandText = ctx.update.message.text;
+    let params = this.commandTextToParams(commandText);
     let messages = await fn(telegramUserId, params);
     await this.sendMessages(messages);
-    if (ctx.update.callback_query) {
-      await ctx.answerCbQuery();
-    }
   }
 
+  async wrapApiToTelegraphAction(ctx, fn) {
+    const telegramUserId = ctx.chat.id;
+    const commandText = ctx.update.callback_query.data;
+    let params = this.commandTextToParams(commandText);
+    let messages = await fn(telegramUserId, params);
+    await this.sendMessages(messages);
+    await ctx.answerCbQuery();
+    
+  }
   async bindTelegrafToApi() {
-    this.telegrafBot.start((ctx) => { this.wrapApiToTelegraph(ctx, (telegramUserId) => this.topLevelApi.welcome(telegramUserId)) });
-    this.telegrafBot.help((ctx) => { this.wrapApiToTelegraph(ctx, (telegramUserId) => this.topLevelApi.help(telegramUserId)) });
+    this.telegrafBot.start((ctx) => { this.wrapApiToTelegraphCommand(ctx, (telegramUserId) => this.topLevelApi.welcome(telegramUserId)) });
+    this.telegrafBot.help((ctx) => { this.wrapApiToTelegraphCommand(ctx, (telegramUserId) => this.topLevelApi.help(telegramUserId)) });
 
-    this.telegrafBot.command('list', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId) => this.topLevelApi.list(telegramUserId)));
-    this.telegrafBot.command('info', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.info(telegramUserId, params)));
-    this.telegrafBot.command('diff', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.diff(telegramUserId, params)));
-    this.telegrafBot.command('add', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.add(telegramUserId, params)));
-    this.telegrafBot.command('remove', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.remove(telegramUserId, params)));
-    this.telegrafBot.command('update', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.update(telegramUserId, params)));
-    this.telegrafBot.command('approve', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.approve(telegramUserId, params)));
-    this.telegrafBot.command('fav', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.fav(telegramUserId, params)));
-    this.telegrafBot.command('unfav', (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.unfav(telegramUserId, params)));
-        
-    this.telegrafBot.action(/list+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId) => this.topLevelApi.list(telegramUserId)));
-    this.telegrafBot.action(/info+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.info(telegramUserId, params)));
-    this.telegrafBot.action(/diff+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.diff(telegramUserId, params)));
-    this.telegrafBot.action(/add+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.add(telegramUserId, params)));
-    this.telegrafBot.action(/remove+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.remove(telegramUserId, params)));
-    this.telegrafBot.action(/update+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.update(telegramUserId, params)));
-    this.telegrafBot.action(/approve+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.approve(telegramUserId, params)));
-    this.telegrafBot.action(/fav+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.fav(telegramUserId, params)));
-    this.telegrafBot.action(/unfav+/, (ctx) => this.wrapApiToTelegraph(ctx, (telegramUserId, params) => this.topLevelApi.unfav(telegramUserId, params)));
+    this.telegrafBot.command('list', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId) => this.topLevelApi.list(telegramUserId)));
+    this.telegrafBot.command('info', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId, params) => this.topLevelApi.info(telegramUserId, params)));
+    this.telegrafBot.command('diff', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId, params) => this.topLevelApi.diff(telegramUserId, params)));
+    this.telegrafBot.command('add', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId, params) => this.topLevelApi.add(telegramUserId, params)));
+    this.telegrafBot.command('remove', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId, params) => this.topLevelApi.remove(telegramUserId, params)));
+    this.telegrafBot.command('update', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId, params) => this.topLevelApi.update(telegramUserId, params)));
+    this.telegrafBot.command('approve', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId, params) => this.topLevelApi.approve(telegramUserId, params)));
+    this.telegrafBot.command('fav', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId, params) => this.topLevelApi.fav(telegramUserId, params)));
+    this.telegrafBot.command('unfav', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId, params) => this.topLevelApi.unfav(telegramUserId, params)));
+    this.telegrafBot.command('version', (ctx) => this.wrapApiToTelegraphCommand(ctx, (telegramUserId) => this.topLevelApi.version(telegramUserId)));
+
+    
+    this.telegrafBot.action(/list+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId) => this.topLevelApi.list(telegramUserId)));
+    this.telegrafBot.action(/info+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.info(telegramUserId, params)));
+    this.telegrafBot.action(/diff+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.diff(telegramUserId, params)));
+    this.telegrafBot.action(/add+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.add(telegramUserId, params)));
+    this.telegrafBot.action(/remove+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.remove(telegramUserId, params)));
+    this.telegrafBot.action(/update+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.update(telegramUserId, params)));
+    this.telegrafBot.action(/approve+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.approve(telegramUserId, params)));
+    this.telegrafBot.action(/fav+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.fav(telegramUserId, params)));
+    this.telegrafBot.action(/unfav+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.unfav(telegramUserId, params)));
+    this.telegrafBot.action(/version+/, (ctx) => this.wrapApiToTelegraphAction(ctx, (telegramUserId, params) => this.topLevelApi.version(telegramUserId, params)));
     
   
   }

@@ -167,11 +167,12 @@ export class BackendAppHighLevelApi {
         const statusIconText = this.getStatusIconText(watchEntity.status); 
         const favoriteIconText = watchEntity.isFavorite ? ' ⭐' : ''; 
         const candidateRevDateText = this.getChangesRevDateText(watchEntity);
+        const timestampDateText = this.getSmartTimestampDateText(watchEntity);
         if (watchEntity.hasDiff) {
           text += '<b>';  
         }
         text += `${index + 1}. ${statusIconText}${favoriteIconText} ${smartName}\n`;
-        text += `     2022-12-14 (<i>${status} ${candidateRevDateText}</i>)\n\n`;
+        text += `     ${timestampDateText} (<i>${status} ${candidateRevDateText}</i>)\n\n`;
         if (watchEntity.hasDiff) {
           text += '</b>';  
         }

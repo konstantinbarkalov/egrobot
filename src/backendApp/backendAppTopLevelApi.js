@@ -1,11 +1,13 @@
 import { BackendAppHighLevelApi, TextMessage } from './backendAppHighLevelApi.js';
 import fs from 'fs';
 const externalHelpText = fs.readFileSync('./txt/help.txt','utf8');
+import packageJson from "./../../package.json" assert { type: "json" };
 
 export class BackendAppTopLevelApi {
   highLevelApi = new BackendAppHighLevelApi();
   welcomeText = externalHelpText;
   helpText = externalHelpText;
+  appVersion = packageJson.version;
 
 
   async start() {  
@@ -96,6 +98,10 @@ export class BackendAppTopLevelApi {
   async help(telegramUserId) {
     return [new TextMessage(telegramUserId, this.helpText)];    
   };
+
+  async version(telegramUserId) {
+    return [new TextMessage(telegramUserId, this.appVersion)];    
+  };
   
   // auto
 
@@ -105,14 +111,4 @@ export class BackendAppTopLevelApi {
     return autoMessages;
   }
 
-  // async autoupdateAllCandidates() {
-  //   const telegramUsers = this.highLevelApi.midLevelApi.lowLevelApi.getAllTelegramUsers();
-  //   const telegramUserIds = Object.keys(telegramUsers);
-  //   const allMessages = {};
-  //   for (const telegramUserId of telegramUserIds) {      
-  //     const messages = await this.highLevelApi.autoupdateAllCandidatesInWatchList(telegramUserId);
-  //     allMessages.push(messages);
-  //   }
-  //   return allMessages.flat();
-  // }
 }
