@@ -1,6 +1,6 @@
 {
   "name": "egrobot",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Telegram bot to monitor EGRUL and EGRIP chages via egrul.itsoft.ru public API",
   "main": "index.js",
   "type": "module",
