@@ -309,11 +309,24 @@ export class BackendAppHighLevelApi {
     const statuses = await this.midLevelApi.updateAllCandidatesInWatchList(telegramUserId);
     const status = statuses.includes('differs') ? 'differs' : 'same' ;
     const statusIconText = this.getStatusIconText(status);
-    let messageText = ''; 
-    messageText += 'Только что были автоматически загружены все выписки \n';
-    messageText += statusIconText;
-    messageText += (status === 'differs') ? 'ИЗМЕНЕНИЯ ОБНАРУЖЕНЫ' : 'изменений нет';
-    const messages = [ new TextMessage(telegramUserId, messageText.trim()) ];
+    const messages = [];
+    if (status === 'differs') {
+      let messageText = ''; 
+      messageText += 'Только что были автоматически загружены все выписки \n';
+      messageText += statusIconText;
+      messageText += 'ИЗМЕНЕНИЯ ОБНАРУЖЕНЫ';
+      const textMessage = new TextMessage(telegramUserId, messageText.trim());
+      messages.push(textMessage);
+      messages.push(new TextMessage(telegramUserId, messageText.trim()) );
+    } else {
+      let messageText = ''; 
+      messageText += 'Только что были автоматически загружены все выписки \n';
+      messageText += statusIconText;
+      messageText += 'изменений нет';
+      const textMessage = new TextMessage(telegramUserId, messageText.trim());
+      textMessage.isSilent = true;
+      messages.push(textMessage);
+    }
     return messages;
   }
   

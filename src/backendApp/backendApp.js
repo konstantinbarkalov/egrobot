@@ -7,7 +7,7 @@ import { telegramBotToken } from '../../secret/secret.js';
 export class BackendApp {
   telegrafBot = new Telegraf(telegramBotToken);
   topLevelApi = new BackendAppTopLevelApi();
-  watchIntervalSec = 60 * 60 * 12;
+  watchIntervalSec = 60 * 60 * 24;
   watchTimer = null;
 
   async start() {
